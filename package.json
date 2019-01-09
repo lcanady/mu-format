@@ -1,0 +1,15 @@
+{
+  "name": "mu-format",
+  "version": "0.1.0",
+  "description": "A tool for formatting MUSHCode into something you can quote into your client.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Lemuel Canady, Jr",
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "^4.17.11",
+    "mu-queue": "github:lcanady/mu-queue"
+  }
+}
