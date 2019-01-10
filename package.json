@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "lodash": "^4.17.11",
-    "mu-queue": "github:lcanady/mu-queue"
+    "mu-queue": "github:lcanady/mu-queue",
+    "string-replace-async": "^1.2.1"
   }
 }
