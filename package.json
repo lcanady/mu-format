@@ -9,6 +9,7 @@
   "author": "Lemuel Canady, Jr",
   "license": "MIT",
   "dependencies": {
+    "axios": "^0.18.0",
     "lodash": "^4.17.11",
     "mu-queue": "github:lcanady/mu-queue",
     "string-replace-async": "^1.2.1"
