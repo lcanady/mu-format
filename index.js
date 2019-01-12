@@ -111,13 +111,16 @@ class Formatter extends EventEmitter {
    */
   plugins(plugins) {
     if (_.isArray(plugins)) {
+      this.logger('Begin loading Plugins...');
       plugins.forEach(plugin => {
         try {
           require(plugin)(this);
+          this.logger(`Plugin loaded: ${path.resolve(plugin)}`);
         } catch (error) {
           this.emit('error', error);
         }
       })
+    this.logger('Plugins loaded..')
     } else {
       const err = new Error('Not an Array');
       this.emit('error', err, 'Plugins must be in an array.');
@@ -127,6 +130,8 @@ class Formatter extends EventEmitter {
   /**
    * Test the input from the format command for what the user has entered.
    * @param {string} input The string used when running the format command
+   * 
+   * @return {string} The type of input we're dealing with.
    */
   async _inputType(input) {
     const lStatPromise = promisify(fs.lstat)
