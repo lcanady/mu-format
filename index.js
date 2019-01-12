@@ -83,6 +83,7 @@ class Formatter extends EventEmitter {
     }
 
     // Load plugins
+    require('./lib/jobs')(this);
     if (options.plugins) {
       this.plugins(options.plugins);
     }
@@ -99,7 +100,7 @@ class Formatter extends EventEmitter {
       if (footer && data.type !== 'text') await this.queue('footer').run(data);
       
       const results = data.header + data.txt + data.footer;
-      this.emit('complete', results);
+      this.emit('done', {document:results, log:this.log});
     })
 
   }
