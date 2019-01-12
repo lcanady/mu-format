@@ -74,11 +74,7 @@ class Formatter extends EventEmitter {
       baseDir: baseDir,
       headers: [],
       txt:'',
-      cache: {
-        path:'',
-        txt:'',
-        url:''
-      },
+      cache: new Map(),
       header: '',
       footer: '',
       type,
