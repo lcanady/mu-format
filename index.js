@@ -73,6 +73,12 @@ class Formatter extends EventEmitter {
       path: input,
       baseDir: baseDir,
       headers: [],
+      txt:'',
+      cache: {
+        path:'',
+        txt:'',
+        url:''
+      },
       header: '',
       footer: '',
       type,
@@ -166,3 +172,8 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
+
+const app = new Formatter();
+app.format('./examples/');
+app.on('log', log => console.log(log))
+app.on('done', results => console.log(results.document))
