@@ -5,13 +5,17 @@ const {promisify} = require('util');
 const {EventEmitter} = require('events');
 const _ = require('lodash');
 
+const readFilePromise = promisify(fs.readFile);
+
 /** Create a new formatter class */
 class Formatter extends EventEmitter {
   constructor(){
     super();
+    this.raw = '';
     this.queue = queue;
     this.validHeaders = new Set();
     this.log = [];
+    this.config = {};
   }
 
   /**
@@ -25,6 +29,15 @@ class Formatter extends EventEmitter {
     for (const hdr of set) {
       this.validHeaders.add(hdr);
     } 
+  }
+
+  async configure(config) {
+    try {
+      let file = await readFilePromise(config, 'utf8');
+      this.config = JSON.parse(file);
+    } catch (error) {
+      this.emit('error', error);
+    }
   }
 
   /**
@@ -49,8 +62,8 @@ class Formatter extends EventEmitter {
     let header = true; 
     let footer = true;
 
-    if (options.noHeader) header = false;
-    if (options.noFooter) footer = false;
+    if (options.noHeader || this.config.noHeader) header = false;
+    if (options.noFooter || this.config.noFooter) footer = false;
 
     switch(true) {
       case  inputType === 'file':
@@ -75,36 +88,86 @@ class Formatter extends EventEmitter {
       headers: [],
       txt:'',
       cache: new Map(),
+      config: this.config,
       header: '',
       footer: '',
       type,
       validHeaders: Array.from(this.validHeaders),
+      inputType: input => this._inputType(input),
       emit: (name, data) => this.emit(name, data),
-      error: (error,message=null) => this.emit(error, message),
+      error: (error,message = null) => this.emit(error, message),
       log: message => this.logger(message)
     }
 
     // Load plugins
-    require('./lib/jobs')(this);
+    require('./lib/open')(this);
+    require('./lib/render')(this);
+    require('./lib/compress')(this);
+    require('./lib/headerFooter')(this);
+
     if (options.plugins) {
+      // Try loading from runtime options first.
       this.plugins(options.plugins);
+    } else if (this.config.plugins) {
+      this.plugins(this.config.plugins)
     }
 
     // run the queues.
     this.queue('open').run(data);
     this.on('open', async data => {
-      
+      this.raw = data.txt;
       await this.queue('pre-render').run(data);
       await this.queue('render').run(data);
+      await this.queue('pre-compress').run(data);
       await this.queue('compress').run(data);
       
-      if (header && data.type !== 'text') await this.queue('header').run(data);
-      if (footer && data.type !== 'text') await this.queue('footer').run(data);
-      
-      const results = data.header + data.txt + data.footer;
-      this.emit('done', {document:results, log:this.log});
+      // add header and footer.
+      if (header) await this._custHeaderFooter('header', data);
+      if (footer) await this._custHeaderFooter('footer', data);
+
+      const results = data.header + data.txt + '\n\n' + data.footer;
+      this.emit('done', {document:results, raw: this.raw, log:this.log});
     })
 
+  }
+
+  async  _custHeaderFooter(input, data) {
+
+    if (input.match(/header|footer/i)) {
+      // Process custom headers -> turn this into a private method.
+      if (data.type !== 'text') {
+        if(this.config[input]) {
+          // figure out what kind of data we're working with.
+          const inputType = await this._inputType(this.config[input]);
+          switch(inputType) {
+            case 'file':
+              try {
+                data.type = 'file';
+                data.path = path.join(this.config[input])
+                this.logger(`Custom ${input.toLowerCase()}: ${path.resolve(data.path)}`)
+                const inputData = await queue('open').job('open-file')(data);
+                inputData.split(/\r|\r\n|\n/).forEach(line =>{
+                  data[input] += `@@ ${line}\n`                   
+                });
+                break;
+
+              } catch (error) {
+                this.emit('error', error);
+                break;
+              }
+            default:
+              this.logger(`Custom ${input.toLowerCase()}: Formatting `.padEnd(68,'-'))
+              this.config[input]
+                .split(/\r|\r\n|\n/)
+                .forEach(line => {
+                  data[input] += `@@ ${line}\n`;
+                });
+          }
+
+        }
+        await this.queue(input).run(data);
+      }
+    }    
   }
 
   /**
@@ -168,8 +231,3 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
-
-const app = new Formatter();
-app.format('./examples/');
-app.on('log', log => console.log(log))
-app.on('done', results => console.log(results.document))
