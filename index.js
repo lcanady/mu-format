@@ -9,7 +9,16 @@ const readFilePromise = promisify(fs.readFile);
 
 /** Create a new formatter class */
 class Formatter extends EventEmitter {
-  constructor(options){
+  
+  /**
+   * 
+   * @param {object} options Aditional params set at creation.
+   * @param {string=} options.config Optional configuration params.
+   * @param {Array=} options.plugins Plugins passed at creation.
+   * @param {string=} options.headers Optional headers recognized when
+   * the formatter runs.
+   */
+  constructor(options={}){
     super(options);
     this.queue = queue;
     this.validHeaders = new Set();
@@ -18,7 +27,6 @@ class Formatter extends EventEmitter {
     this.config = options.config ? options.config : {};
     if (options.config)  this.configure(this.config);
     if (options.plugins) this.plugins(options.plugins);
-    if (options.headers) this.setHeaders(options.headers);
   }
 
   /**
@@ -89,16 +97,13 @@ class Formatter extends EventEmitter {
     const data = {
       path: input,
       baseDir: baseDir,
-      headers: [],
       txt:'',
       raw:'',
       fileName: '',
       cache: new Map(),
       config: this.config,
-      header: '',
       footer: '',
       type,
-      validHeaders: Array.from(this.validHeaders),
       inputType: input => this._inputType(input),
       emit: (name, data) => this.emit(name, data),
       error: (error,message = null) => this.emit(error, message),
@@ -130,10 +135,9 @@ class Formatter extends EventEmitter {
       await this.queue('pre-compress').run(data);
       await this.queue('compress').run(data);
       
-      // add header and footer.
-      if (header) await this._custHeaderFooter('header', data);
+      // add footer
       if (footer) await this._custHeaderFooter('footer', data);
-      const results = data.header + data.txt + '\n\n' + data.footer;
+      const results = data.txt + '\n\n' + data.footer;
       
       // Push the finished document to the documents collection.
       this.documents.push({
