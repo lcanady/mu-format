@@ -106,7 +106,7 @@ class Formatter extends EventEmitter {
       type,
       inputType: input => this._inputType(input),
       emit: (name, data) => this.emit(name, data),
-      error: (error,message = null) => this.emit(error, message),
+      error: (error,message = null) => this.emit('error', error, message),
       log: message => this.logger(message)
     }
 
@@ -252,3 +252,8 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
+
+app = new Formatter()
+app.format('github:lcanady/archive-test');
+app.on('log', log => console.log(log))
+app.on('error', error => console.log(error))
