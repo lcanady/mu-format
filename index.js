@@ -9,13 +9,16 @@ const readFilePromise = promisify(fs.readFile);
 
 /** Create a new formatter class */
 class Formatter extends EventEmitter {
-  constructor(){
-    super();
-    this.raw = '';
+  constructor(options){
+    super(options);
     this.queue = queue;
     this.validHeaders = new Set();
     this.log = [];
-    this.config = {};
+    this.documents = [];
+    this.config = options.config ? options.config : {};
+    if (options.config)  this.configure(this.config);
+    if (options.plugins) this.plugins(options.plugins);
+    if (options.headers) this.setHeaders(options.headers);
   }
 
   /**
@@ -56,11 +59,12 @@ class Formatter extends EventEmitter {
    */
   async format(input, options={}){
     // figure out the base directory if there is one.
-    let baseDir = '';
     const inputType = await this._inputType(input)
     let type;
     let header = true; 
     let footer = true;
+    let baseDir = '';
+    let fileName = '';
 
     if (options.noHeader || this.config.noHeader) header = false;
     if (options.noFooter || this.config.noFooter) footer = false;
@@ -87,6 +91,8 @@ class Formatter extends EventEmitter {
       baseDir: baseDir,
       headers: [],
       txt:'',
+      raw:'',
+      fileName: '',
       cache: new Map(),
       config: this.config,
       header: '',
@@ -115,7 +121,10 @@ class Formatter extends EventEmitter {
     // run the queues.
     this.queue('open').run(data);
     this.on('open', async data => {
-      this.raw = data.txt;
+      
+      // Remove the '#include references from data.txt
+      data.raw = data.txt.replace(/#include\s.*\n/igm,'');
+
       await this.queue('pre-render').run(data);
       await this.queue('render').run(data);
       await this.queue('pre-compress').run(data);
@@ -124,10 +133,17 @@ class Formatter extends EventEmitter {
       // add header and footer.
       if (header) await this._custHeaderFooter('header', data);
       if (footer) await this._custHeaderFooter('footer', data);
-
       const results = data.header + data.txt + '\n\n' + data.footer;
-      this.emit('done', {document:results, raw: this.raw, log:this.log});
-    })
+      
+      // Push the finished document to the documents collection.
+      this.documents.push({
+        fileName: fileName || 'main',
+        contents: results,
+        raw: data.raw
+      });
+      
+      this.emit('done', this.documents);
+    });
 
   }
 
