@@ -123,6 +123,7 @@ class Formatter extends EventEmitter {
       this.plugins(this.config.plugins)
     }
 
+    
     // run the queues.
     this.queue('open').run(data);
     this.on('open', async data => {
