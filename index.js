@@ -252,8 +252,3 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
-
-app = new Formatter()
-app.format('github:lcanady/archive-test');
-app.on('log', log => console.log(log))
-app.on('error', error => console.log(error))
