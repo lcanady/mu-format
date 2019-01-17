@@ -69,10 +69,10 @@ class Formatter extends EventEmitter {
     // figure out the base directory if there is one.
     const inputType = await this._inputType(input)
     let type;
-    let header = true; 
     let footer = true;
     let baseDir = '';
     let fileName = '';
+    this.documents = [];
 
     if (options.noHeader || this.config.noHeader) header = false;
     if (options.noFooter || this.config.noFooter) footer = false;
