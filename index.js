@@ -27,6 +27,7 @@ class Formatter extends EventEmitter {
     this.config = options.config ? options.config : {};
     if (options.config)  this.configure(this.config);
     if (options.plugins) this.plugins(options.plugins);
+    if (options.headers) this.setHeaders(options.headers);
   }
 
   /**
@@ -238,10 +239,10 @@ class Formatter extends EventEmitter {
     } catch (error) {
       // If stat fails to run, it's either github or text.      
       try {
-        const gitHub = input.match(/^github.*/i);
+        const gitHub = input.match(/github.*/i);
         if (gitHub) {
           switch(true) {
-            case input.match(/^github.*/i).length > 0:
+            case input.match(/github.*/i).length > 0:
               return 'github';
             default: 
               return 'text';
@@ -257,3 +258,4 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
+
