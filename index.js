@@ -258,4 +258,3 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
-
