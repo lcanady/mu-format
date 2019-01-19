@@ -70,6 +70,7 @@ class Formatter extends EventEmitter {
     const inputType = await this._inputType(input)
     let type;
     let footer = true;
+    let header = true;
     let baseDir = '';
     let fileName = '';
     this.documents = [];
@@ -97,13 +98,16 @@ class Formatter extends EventEmitter {
     const data = {
       path: input,
       baseDir: baseDir,
+      headers: [],
       txt:'',
       raw:'',
       fileName: '',
       cache: new Map(),
       config: this.config,
+      header: '',
       footer: '',
       type,
+      validHeaders: Array.from(this.validHeaders),
       inputType: input => this._inputType(input),
       emit: (name, data) => this.emit(name, data),
       error: (error,message = null) => this.emit('error', error, message),
@@ -136,9 +140,10 @@ class Formatter extends EventEmitter {
       await this.queue('pre-compress').run(data);
       await this.queue('compress').run(data);
       
-      // add footer
+      // add header and footer
+      if (header) await this._custHeaderFooter('header', data);
       if (footer) await this._custHeaderFooter('footer', data);
-      const results = data.txt + '\n\n' + data.footer;
+      const results = data.header + data.txt + '\n\n' + data.footer;
       
       // Push the finished document to the documents collection.
       this.documents.push({
@@ -156,7 +161,7 @@ class Formatter extends EventEmitter {
 
     if (input.match(/header|footer/i)) {
       // Process custom headers -> turn this into a private method.
-      if (data.type !== 'text') {
+      
         if(this.config[input]) {
           // figure out what kind of data we're working with.
           const inputType = await this._inputType(this.config[input]);
@@ -187,7 +192,7 @@ class Formatter extends EventEmitter {
 
         }
         await this.queue(input).run(data);
-      }
+      
     }    
   }
 
@@ -233,10 +238,10 @@ class Formatter extends EventEmitter {
     } catch (error) {
       // If stat fails to run, it's either github or text.      
       try {
-        const gitHub = input.match(/github.*/i);
+        const gitHub = input.match(/^github.*/i);
         if (gitHub) {
           switch(true) {
-            case input.match(/github.*/i).length > 0:
+            case input.match(/^github.*/i).length > 0:
               return 'github';
             default: 
               return 'text';
@@ -252,3 +257,92 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
+
+const app = new Formatter()
+app.setHeaders('system author email url')
+app.format(`/*
+################################################################################
+### Global Room Parent #########################################################
+
+https://github.com/lcanady/CrescentMoonMux
+
+Formatted for Muxify: http://muxify.musoapbox.net/editor.html
+
+Usage
+    @parent =
+
+And in your .config file add the following line to automatically assign your
+room parent to any new rooms created:
+
+    room_parent 
+
+This is the parent room for Crescent Moon Mux. It's set through the .config file
+as parent_room and should be automatically set when new rooms are created.
+
+Requirements:
+    header():         Game's pretty header function.
+    idletime():     Checks a player's idle time.
+    shortdesc():    Display a player's &short-desc attribute
+    issecondary():    Checks for a secondary exit attribute
+    istertiary():     Checks for tertiary exit attritbute
+
+--------------------------------------------------------------------------------
+--- Setup ----------------------------------------------------------------------
+*/
+
+@dig Global Room Parent 
+-
+@fo me=&d.grp=[search( name=Global Room Parent  )]
+-
+@set [v( d.grp )]=safe floating halt
+-
+/*
+--------------------------------------------------------------------------------
+--- configuration --------------------------------------------------------------
+
+These are the settings to change the basic apperance of your Global Room Parent
+
+*/
+
+// .header related config settings for @conformat & @exitformat
+
+&config.color     [v( d.grp )]= r
+-
+&config.hcolor    [v( d.grp )]= hr
+-
+&config.text      [v( d.grp )]= h
+-
+&config.filler    [v( d.grp )]= -
+-
+&config.lsep      [v( d.grp )]= <<
+-
+&config.rsep      [v( d.grp )]= >>
+-
+
+// Color configuration for exits with &secondary or &tertiary attributes
+
+&config.secondary [v( d.grp )] = c
+-
+&config.tertiary  [v( d.grp )] = m
+-
+
+/*
+--------------------------------------------------------------------------------
+--- Name Format ----------------------------------------------------------------
+
+Format the room name to show the game header.  If the looker is staff/wizard or
+the owner of the room can see the dbref and flags list.
+
+*/
+
+@NameFormat [v( d.grp )]=
+    header(
+            [name( %! )]
+            [if(
+                or( match( %#, owner( %! ) ), orflags( %#, wWZ )),
+                %([num( me )][flags( %! )]%)
+            )]
+     )
+-`)
+
+app.on('done', documents => console.log(documents[0].contents))
