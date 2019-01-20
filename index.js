@@ -27,6 +27,7 @@ class Formatter extends EventEmitter {
     this.config = options.config ? options.config : {};
     if (options.config)  this.configure(this.config);
     if (options.plugins) this.plugins(options.plugins);
+    if (options.headers) this.setHeaders(options.headers);
   }
 
   /**
