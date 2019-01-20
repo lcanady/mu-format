@@ -239,10 +239,10 @@ class Formatter extends EventEmitter {
     } catch (error) {
       // If stat fails to run, it's either github or text.      
       try {
-        const gitHub = input.match(/^github.*/i);
+        const gitHub = input.match(/^(?:api\.)?github.*/i);
         if (gitHub) {
           switch(true) {
-            case input.match(/^github.*/i).length > 0:
+            case input.match(/^(?:api\.)?github.*/i).length > 0:
               return 'github';
             default: 
               return 'text';
