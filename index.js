@@ -148,7 +148,7 @@ class Formatter extends EventEmitter {
       
       // Push the finished document to the documents collection.
       this.documents.push({
-        fileName: fileName || 'main',
+        fileName: fileName || 'index',
         contents: results,
         raw: data.raw
       });
