@@ -13,7 +13,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "lodash": "^4.17.11",
-    "mu-queue": "github:lcanady/mu-queue",
+    "mu-queue": "^0.4.2",
     "string-replace-async": "^1.2.1"
   }
 }
