@@ -258,3 +258,8 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
+
+const app = new Formatter()
+app.setHeaders('author url email')
+app.on('done', documents => console.log(documents[0].contents))
+app.format('./examples/')
