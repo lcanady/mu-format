@@ -131,8 +131,8 @@ class Formatter extends EventEmitter {
     
     // run the queues.
     this.queue('open').run(data);
-    this.on('open', async data => {
-      
+    
+    this.on('open',  async data => {
       // Remove the '#include references from data.txt
       data.raw = data.txt.replace(/#include\s.*\n/igm,'');
 
@@ -154,7 +154,9 @@ class Formatter extends EventEmitter {
       });
       
       this.emit('done', this.documents);
-    });
+
+    })
+      
 
   }
 
@@ -262,4 +264,5 @@ module.exports = Formatter;
 const app = new Formatter()
 app.setHeaders('author url email')
 app.on('done', documents => console.log(documents[0].contents))
-app.format('./examples/')
+app.on('log', log => console.log(log))
+app.format('./examples/file.mu')
