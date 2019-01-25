@@ -260,9 +260,3 @@ class Formatter extends EventEmitter {
 }
 
 module.exports = Formatter;
-
-const app = new Formatter()
-app.setHeaders('author url email')
-app.on('done', documents => console.log(documents[0].contents))
-app.on('log', log => console.log(log))
-app.format('./examples/file.mu')
