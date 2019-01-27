@@ -108,6 +108,7 @@ class Formatter extends EventEmitter {
       header: '',
       footer: '',
       type,
+      version: require('./package.json').version,
       validHeaders: Array.from(this.validHeaders),
       inputType: input => this._inputType(input),
       emit: (name, data) => this.emit(name, data),
@@ -153,7 +154,7 @@ class Formatter extends EventEmitter {
         raw: data.raw
       });
       
-      this.emit('done', this.documents);
+      this.emit('done', this.documents, this.log);
 
     })
       
@@ -164,7 +165,6 @@ class Formatter extends EventEmitter {
 
     if (input.match(/header|footer/i)) {
       // Process custom headers -> turn this into a private method.
-      
         if(this.config[input]) {
           // figure out what kind of data we're working with.
           const inputType = await this._inputType(this.config[input]);
