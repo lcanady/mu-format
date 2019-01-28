@@ -145,12 +145,12 @@ class Formatter extends EventEmitter {
       // add header and footer
       if (header) await this._custHeaderFooter('header', data);
       if (footer) await this._custHeaderFooter('footer', data);
-      const results = data.header + data.txt + '\n\n' + data.footer;
+      const results = data.header + data.txt.trim() + '\n\n' + data.footer;
       
       // Push the finished document to the documents collection.
       this.documents.push({
         fileName: fileName || 'index',
-        contents: results.trim(),
+        contents: results,
         raw: data.raw
       });
       
