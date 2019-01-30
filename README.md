@@ -11,20 +11,15 @@ There are just a few steps in setting up the formatter.
 ```JavaScript
 // Create your app
 const Formatter = require('mu-formatter');
-const app = new Formatter();
 
-// Set your shortcut header tags.  These can be things like 'author'
-// 'codebase', etc. They are accessed by typing #<header> <entry> into your
-// pre-formatted file. They'll show up at the top after formatting if headers
-// are turned on.
-app.setHeaders('author codebase url email');
-
-// Add any plugin files.
-app.plugins(['./extras/plugins/plugin1','./another/place/plugin2')];
+const app = new Formatter({
+  headers: 'author codebase url email',
+  plugins: ['./extras/plugins/plugin1','./another/place/plugin2']
+});
 
 // Setup event listeners
 app.on('log', log => console.log(log));
-app.on('error', (error,message) => app.log(message||error.message));
+app.on('error', (error,message) => app.logger(message||error.message));
 app.on('done', results => console.log(results.document));
 
 // Now run the formatter! If you run a file from the directory level, or from
@@ -97,7 +92,7 @@ require('./plugins/plugin.js')(app);
 // #msg This is a message that will be rendered to the client.
 ```
 ## Formatting Rules
-The rules for formatting .mu documents is pretty simple! First, You can format your code however you'd like.  I suggest adopting an easy to read style using indentations and spacing to make your code digestable. Since MUSHCode doesn't have any real blocking, Mu-Format usese dashes '-' between commands to seperate them. You can also add comments in your code in either '/* ... */' block style or '//' inline comments.
+The rules for formatting .mu documents is pretty simple! First, You can format your code however you'd like.  I suggest adopting an easy to read style using indentations and spacing to make your code digestable. MU-Format looks for a ```& or @``` in the first position of the line to designate the start of a new command. You can also add comments in your code in either '/* ... */' block style or '//' inline comments.
 
 ```
 /*
@@ -109,20 +104,20 @@ Some cool custom commands I just wrote!
 
 &cmd_mycommand me = $+Stuff *:
   @pemit %#=You entered things and %0.;
--
+
 // Another command that does things
 &cmd_mycommandtwo me = $+things *=*:
   
   // Sets an attribute on myself!
-  &_things me=%0-%1
+  &_things me=%0-%1;
   think Things %0 %1! // Wut?
--
+
 ```
 When we format this block of code, it turns into:
 
 ```
 &cmd_mycommand me = $+Stuff *: @pemit %#=You entered things and %0.;
-&cmd_mycommandtwo me = $+things *=*: &_things me=%0-%1 think Things %0 %1!
+&cmd_mycommandtwo me = $+things *=*: &_things me=%0-%1; think Things %0 %1!
 ```
 Simple!
 
@@ -137,11 +132,10 @@ This is probably the most powerful #tag in the Mu-Format arsonal right now.  It 
 ```
 &cmd_command #123 = $foo *:
   think me Foo %0.
--
 
 // Include the rest of the library.
 #include ./path/to/file2.mu
--
+
 ```
 ### #file /path/to/file.txt
 Honestly #file works list like #include, except it escapes each line of the text file with ```@@``` null commands so they don't get quoted to the mux.  This is great for things like license files, and custom header and footer elements that are repeated across various Mu project files.
