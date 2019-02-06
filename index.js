@@ -105,6 +105,7 @@ class Formatter extends EventEmitter {
       fileName: '',
       cache: new Map(),
       config: this.config,
+      defs: new Map(),
       header: '',
       footer: '',
       type,
