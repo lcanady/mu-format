@@ -137,7 +137,6 @@ class Formatter extends EventEmitter {
     this.on('open',  async data => {
       // Remove the '#include references from data.txt
       data.raw = data.txt.replace(/#include\s.*\n/igm,'');
-
       await this.queue('pre-render').run(data);
       await this.queue('render').run(data);
       await this.queue('pre-compress').run(data);
