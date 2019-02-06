@@ -132,33 +132,29 @@ class Formatter extends EventEmitter {
 
     
     // run the queues.
-    this.queue('open').run(data);
+    await this.queue('open').job('open')(data);
+  
+    // Remove the '#include references from data.txt
+    data.raw = data.txt.replace(/#include\s.*\n/igm,'');
+    await this.queue('pre-render').run(data);
+    await this.queue('render').run(data);
+    await this.queue('pre-compress').run(data);
+    await this.queue('compress').run(data);
     
-    this.on('open',  async data => {
-      // Remove the '#include references from data.txt
-      data.raw = data.txt.replace(/#include\s.*\n/igm,'');
-      await this.queue('pre-render').run(data);
-      await this.queue('render').run(data);
-      await this.queue('pre-compress').run(data);
-      await this.queue('compress').run(data);
-      
-      // add header and footer
-      if (header) await this._custHeaderFooter('header', data);
-      if (footer) await this._custHeaderFooter('footer', data);
-      const results = data.header + data.txt.trim() + '\n\n' + data.footer;
-      
-      // Push the finished document to the documents collection.
-      this.documents.push({
-        fileName: fileName || 'index',
-        contents: results,
-        raw: data.raw
-      });
-      
-      this.emit('done', this.documents, this.log);
-
+    // add header and footer
+    if (header) await this._custHeaderFooter('header', data);
+    if (footer) await this._custHeaderFooter('footer', data);
+    const results = data.header + data.txt.trim() + '\n\n' + data.footer;
+    
+    // Push the finished document to the documents collection.
+    this.documents.push({
+      fileName: fileName || 'index',
+      contents: results,
+      raw: data.raw
     })
-      
 
+    this.emit('done', this.documents, this.log)
+    return {documents: this.documents, log: this.log}
   }
 
   async  _custHeaderFooter(input, data) {
@@ -205,7 +201,7 @@ class Formatter extends EventEmitter {
    */
   plugins(plugins) {
     if (_.isArray(plugins)) {
-      this.logger('Begin loading Plugins...');
+      this.logger('Begin loading Plugins.');
       plugins.forEach(plugin => {
         try {
           require(plugin)(this);
@@ -214,10 +210,10 @@ class Formatter extends EventEmitter {
           this.emit('error', error);
         }
       })
-    this.logger('Plugins loaded..')
+    this.logger('Plugins loaded')
     } else {
-      const err = new Error('Not an Array');
-      this.emit('error', err, 'Plugins must be in an array.');
+      const err = new Error('Plugins must be an array.');
+      this.emit('error', err);
     }
   }
 
