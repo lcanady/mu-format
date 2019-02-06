@@ -154,7 +154,6 @@ class Formatter extends EventEmitter {
     })
 
     this.emit('done', this.documents, this.log)
-    return {documents: this.documents, log: this.log}
   }
 
   async  _custHeaderFooter(input, data) {
