@@ -12,7 +12,10 @@ There are just a few steps in setting up the formatter.
 const Formatter = require('mu-formatter');
 
 const app = new Formatter({
-  plugins: ['./extras/plugins/plugin1','./another/place/plugin2']
+  plugins: [
+    './extras/plugins/plugin1',
+    './another/place/plugin2'
+  ]
 });
 
 // Setup some event listeners
@@ -20,8 +23,9 @@ app.on('log', log => console.log(log));
 app.on('error', error => app.logger(error.stack));
 app.on('done', results => console.log(results[0].contents));
 
-// Now run the formatter! If you run a file from the directory level, or from
-// a github repo, it will look for a file called `installer.mu`.
+// Now run the formatter! If you run a file from the directory
+// level, or from a github repo, it will look for a file called
+// `installer.mu`.
 app.format('./code/codefile.mu'); // or
 app.format('./code/');            // or
 app.format('github:user/repo');    
@@ -83,7 +87,7 @@ Trigger a 'log' event on the formatter object, and also save the message in the 
 Trigger an 'error' event on theformatter object.  Error must be an error object.
 
 ### Defining Queues and Jobs
-```JS
+```js
 
 module.exports = app => {
   // First, create a queue.  When you call the queue command,
@@ -101,7 +105,7 @@ module.exports = app => {
     })
 }
 ```
-```JS
+```js
 // to run a single job from a queue:
 app.queue('name').job('jobName')(data)
 ```
