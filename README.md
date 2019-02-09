@@ -1,4 +1,4 @@
-# mu-format
+# Mu-Format
 A Program that turns pretty formatted MUSHCode into something you can quote to your client, mixed with a few extras to speed up your coding flow.
 
 ## Installation
@@ -113,7 +113,7 @@ app.queue('name').job('jobName')(data)
 ## Creating plugins
 Creating a plugin for the system is pretty straight forward.  Make a module that exports a function.
 ```js
-// /some/folder/plugin.js
+/* .plugins/plugin.js */
 
 module.exports = app => {
   app.queue('pre-render')
@@ -123,7 +123,7 @@ module.exports = app => {
     })
 }
 
-// index.js
+ /* index.js */
 
 // after your app is declared.
 app.plugins(['./plugins/plugin.js'])
@@ -175,7 +175,7 @@ If you list a directory, Mu-Format will look for a file called ```installer.mu``
 - **Github Archive** 
 This is the same as installing from a local directory, instead you'll you'll enter ```github:user/repo```. If you start hitting errors while compiling from Github, try adding Github authorization when you create a new Formatter object. 
 
-```JS
+```js
 app = new Formatter({
   gitUser: 'user',
   gitPass: '123Secret!'
@@ -191,8 +191,8 @@ app = new Formatter({
 #include ./path/to/file2.mu
 
 ```
-### #esc [file[|string]]
-Honestly #esc works list like #include, except it escapes each line of text with a MUSH null string ```@@``` so they don't get quoted to the Game.  This is great for things like license files, and other custom comments text.
+### #esc|#file [file[|string]]
+Honestly #esc (or #file) works list like #include, except it escapes each line of text with a MUSH null string ```@@``` so they don't get quoted to the Game.  This is great for things like license files, and other custom comments text.
 
 ```
 @@ Legal Stuff
