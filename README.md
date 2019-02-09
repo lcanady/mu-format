@@ -17,7 +17,7 @@ const app = new Formatter({
 
 // Setup some event listeners
 app.on('log', log => console.log(log));
-app.on('error', (error) => app.logger(error.stack));
+app.on('error', error => app.logger(error.stack));
 app.on('done', results => console.log(results[0].contents));
 
 // Now run the formatter! If you run a file from the directory level, or from
@@ -93,12 +93,12 @@ module.exports = app => {
   // parameter, data.
   app.queue('render')
 
-    .addJob('someJob', (data) => {
+    .addJob('someJob', data => {
       // actions on the data object. Normally you'll be working 
       // on data.txt where the document contents are stored
       // - but there are other things the data object can do.
-      data.log('Log message!');
-    });
+      data.log('Log message!')
+    })
 }
 ```
 ```JS
@@ -111,9 +111,9 @@ Creating a plugin for the system is pretty straight forward.  Make a module that
 ```JavaScript
 // /some/folder/plugin.js
 
-module.exports = (app) => {
+module.exports = app => {
   app.queue('pre-render')
-    .addJob('custom-job' (data) => {
+    .addJob('custom-job' data => {
       // Do whatever processing you need to do on the current
       // document (data.txt).        
     })
@@ -131,9 +131,6 @@ app.format('github:user/repo',{
 
 // You can even just require the file:
 require('./plugins/plugin.js')(app)
-
-// Then in our raw document we use the tag:
-// #msg This is a message that will be rendered to the client.
 ```
 ## Formatting Rules
 The rules for formatting .mu documents is pretty simple! First, You can format your code however you'd like.  I suggest adopting an easy to read style using indentations and spacing to make your code digestable. MU-Format looks for ```[&+@-]``` in the first position of the current line to designate the start of a new command, attribute, or spacer. You can add comments in your code in either ```/* ... */``` block style or ```//``` inline style comments.
@@ -193,8 +190,8 @@ app = new Formatter({
 #include ./path/to/file2.mu
 
 ```
-### #file /path/to/file.txt
-Honestly #file works list like #include, except it escapes each line of the text file with ```@@``` null commands so they don't get quoted to the Game.  This is great for things like license files, and custom header and footer elements that are repeated across various Mu project files.
+### #esc [file[|string]]
+Honestly #esc works list like #include, except it escapes each line of text with a MUSH null string ```@@``` so they don't get quoted to the Game.  This is great for things like license files, and other custom comments text.
 
 ```
 @@ Legal Stuff
@@ -202,6 +199,23 @@ Honestly #file works list like #include, except it escapes each line of the text
 @@ I don't really speak legal.
 ```
 
-### #Header <title>=<body>
-Information to be listed at the top of the resulting installer file. The library allows you to determine what special #tags are considered headers, like #author #url #codebase, etc.  I'm sure we'll have some defaults soon.  For now you can add a custom header to the beginning of the #header tag.
+### #header or #footer key=value
+Add key/value information to be listed at the very top or bottom of the resulting file.
+```#header version=1.0.0``` escapes into: ```@@ version         1.0.0``` at the top of the resulting document.
 
+### #def string|regex
+Roll your own edits! I wanted to keep the system as open to modification as I could. ```#def``` #metas are are a way to replace tags with code at processing time. Remember! a ```@&-+``` at the beginning of a line results in a new command or attribute being defined.
+
+```
+#def #check-wiz
+@assert hasflag(%#,Wizard) = {@pemit %#=Permission denied.}
+#enddef
+```
+You can also make a ```#def``` that uses a regular expression string (you don't need to provide the beginning and end of the search ```//```).  Any group matches can represented in your code in the variables ````$0 - $9```  Remember! ```$0``` is the entire match.
+
+```
+#def #create\s+(.*)\s*=\s*(.*)
+@create $1
+@fo me={&$2 me=search(name=$1)}
+#enddef
+```
