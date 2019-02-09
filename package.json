@@ -10,6 +10,10 @@
     "type": "git",
     "url": "https://github.com/lcanady/mu-format.git"
   },
+  "keywords": [
+    "MUSH",
+    "MUX"
+  ],
   "dependencies": {
     "axios": "^0.18.0",
     "lodash": "^4.17.11",
