@@ -78,7 +78,7 @@ const data = {
 
 ```
 
-## Helper Functions
+#### Helper Functions
 **data.emit('Event',[data])** Trigger a custom event on the formatter object.
 
 **data.log(message)** Trigger a 'log' event on the formatter object, and also save the message in the result object log. 
