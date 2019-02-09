@@ -138,13 +138,16 @@ require('./plugins/plugin.js')(app)
 ```
 ## Formatting Rules
 The rules for formatting .mu documents is pretty simple! First, You can format your code however you'd like.  I suggest adopting an easy to read style using indentations and spacing to make your code digestable. MU-Format looks for ```[&+@-]``` in the first position of the current line to designate the start of a new command, attribute, or spacer. You can add comments in your code in either ```/* ... */``` block style or ```//``` inline style comments.
-A spacer, or dash ```-``` is a purely cosmetic mark for formatting the program output. During the compress phase they become newlines making the processed code a little more readable.
+A spacer, or dash ```-``` is a purely cosmetic mark for formatting the program output. During the compression phase blank lines are removed. Dashes become newlines making the processed code a little easier to process through.
 
 ```
 /*
 ------------------------------------------
 --- Commands: +things & +stuff -----------
 */
+@@ A comment for someone reading your minified code.
+-
+
 &cmd.mycommand me = $+Stuff *:
   @pemit %#=You entered things and %0.
 
@@ -159,6 +162,8 @@ A spacer, or dash ```-``` is a purely cosmetic mark for formatting the program o
 When we format this block of code, it turns into:
 
 ```
+@@ A comment for someone reading your minified code.
+
 &cmd_mycommand me = $+Stuff *: @pemit %#=You entered things and %0.
 &cmd_mycommandtwo me = $+things *=*: &_things me=%0-%1; think Things %0 %1!
 ```
@@ -197,15 +202,19 @@ Honestly #esc (or #file) works list like #include, except it escapes each line o
 ```
 @@ Legal Stuff
 @@ Bla bla, yadda
-@@ I don't really speak legal.
+
+@@ Instructions
+@@ ----------------
+@@ 1. Things and
+@@ 2. Stuff
 ```
 
 ### #header or #footer key=value
 Add key/value information to be listed at the very top or bottom of the resulting file.
-```#header version=1.0.0``` escapes into: ```@@ version         1.0.0``` at the top of the resulting document.
+```#header version=1.0.0``` escapes into: ```@@ version 1.0.0``` at the top of the resulting document.
 
 ### #def string|regex
-Roll your own edits! I wanted to keep the system as open to modification as I could. ```#def``` #metas are are a way to replace tags with code at processing time. Remember! a ```@&-+``` at the beginning of a line results in a new command or attribute being defined.
+Roll your own edits! I wanted to keep the system as open to modification as I could. ```#def``` #metas are are a way to replace tags with code at processing time. I find them really useful for code snippets that I'm going to use more than once or twice. Remember! a ```@&-+``` at the beginning of a line results in a new command or attribute being defined.
 
 ```
 #def #check-wiz
@@ -225,7 +234,11 @@ You can also make a ```#def``` that uses a regular expression string (you don't 
 
 ```
 #def #create\s+(.*)\s*=\s*(.*)
-@create $1
-@fo me={&$2 me=search(name=$1)}
+@if [locate(me,$1,*)] = {
+  @create $1;
+  &$2 me = [locate(me,$1,*)];
+},{
+  &$2 me = [locate(me,$1,*)];
+}
 #enddef
 ```
