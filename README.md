@@ -78,15 +78,12 @@ const data = {
 
 ```
 
-#### Helper Functions
-##### data.emit('Event',[data])
-Trigger a custom event on the formatter object.
+**Helper Functions**
+**data.emit('Event',[data])** Trigger a custom event on the formatter object.
 
-##### data.log(message)
-Trigger a 'log' event on the formatter object, and also save the message in the result object log. 
+**data.log(message)** Trigger a 'log' event on the formatter object, and also save the message in the result object log. 
 
-###### data.error(error)
-Trigger an 'error' event on theformatter object.  Error must be an error object.
+**data.error(error)** Trigger an 'error' event on theformatter object.  Error must be an error object.
 
 ### Defining Queues and Jobs
 ```js
