@@ -208,9 +208,18 @@ Roll your own edits! I wanted to keep the system as open to modification as I co
 
 ```
 #def #check-wiz
-@assert hasflag(%#,Wizard) = {@pemit %#=Permission denied.}
+  @assert hasflag(%#,Wizard) = {@pemit %#=Permission denied.}
 #enddef
 ```
+
+Then later in your code:
+
+```
+&cmd.wizcode #1234=$+cmd foobar:
+  #wiz-check
+  // Rest of your code ...
+```
+
 You can also make a ```#def``` that uses a regular expression string (you don't need to provide the beginning and end of the search ```//```).  Any group matches can represented in your code in the variables ````$0 - $9```  Remember! ```$0``` is the entire match.
 
 ```
