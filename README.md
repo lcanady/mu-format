@@ -1,10 +1,9 @@
 # mu-format
-A Program that turns pretty formatted MUSHCode into something you can quote to your client. It reads and combines different pieces from different files into a single document that you can use to install MUSHCode on your game.
+A Program that turns pretty formatted MUSHCode into something you can quote to your client, mixed with a few extras to speed up your coding flow.
 
 ## Installation
-The formatter isn't on NPM yet (I want to test it in the wild first), but you can download it from github using the npm tool.
 ```
-npm i -s lcanady/mu-format
+npm i mu-format
 ```
 ## Usage
 There are just a few steps in setting up the formatter.
@@ -13,14 +12,13 @@ There are just a few steps in setting up the formatter.
 const Formatter = require('mu-formatter');
 
 const app = new Formatter({
-  headers: 'author codebase url email',
   plugins: ['./extras/plugins/plugin1','./another/place/plugin2']
 });
 
-// Setup event listeners
+// Setup some event listeners
 app.on('log', log => console.log(log));
-app.on('error', (error,message) => app.logger(message||error.message));
-app.on('done', results => console.log(results.document));
+app.on('error', (error) => app.logger(error.stack));
+app.on('done', results => console.log(results[0].contents));
 
 // Now run the formatter! If you run a file from the directory level, or from
 // a github repo, it will look for a file called `installer.mu`.
@@ -29,52 +27,96 @@ app.format('./code/');            // or
 app.format('github:user/repo');    
 ```
 
-## The Queue and Jobs.
-At it's heart, Mu-Format is a middleware driven system that runs lists, or queues of functions, or jobs. The main queue most will be working with is the render or pre-render queues. Honestly, you can create whatever queues you want to assist in your program, those are just the main attached to the formatter generally! Each job is passed a `data` object, containing information about the document currently, as well as a few helper functions. More info on the data object coming in the api!
-```JavaScript
-// First, create a queue.  When you call the queue command, it will either create
-// the queue if it doesn't exist - or load an existing queue object. We can link our
-// methods through chaining. The job function is passed a single parameter, data,
-// which holds all of the job information available. 
-app.queue('render')
-  .addJob('someJob', (data) => {
-    // actions on the data object. Normally you'll be working on data.txt where the
-    // document contents are stored - but there are other things the data object can
-    // do. API Coming soon!!
-    console.log(data.txt);
-  });
+## The Queue and Jobs
+At it's heart, Mu-Format is a middleware driven program that runs lists, or queues of functions, or jobs. The majority of the work happens in in the render (or pre-render) and compress (or pre-compress) queues. 
 
-  // to run a queue. Data can be anything.
-  app.queue('name').run(data);
-  // to run a single job from a queue:
-  app.queue('name').job('jobName')(data)
+#### The Data Object
+Each job is passed a `data` object, containing information about the document currently, as well as a few helper functions to trigger formatter events.
+
+```js
+//Some functionality removed for simplification.
+const data = {
+  path: './code/installer.mu',
+  baseDir: './code/',
+  
+  // The working text of the format file.  
+  // All of the #includes are combined into this 
+  // attribute, and modify it through out the format
+  // process.
+  txt: '...',
+  
+  // A copy of the composited document before rendering 
+  // and compressing.
+  raw: '...',
+
+  // vars is a unified place to save working data.
+  vars: {
+    headers: [
+      {
+        name: 'Foo',
+        value: 'bar'
+      },
+      {
+        name: 'Something',
+        value: 'important'
+      }
+    ]
+  },
+
+  // The options passed to mu-format at instantiation
+  options: {
+    plugins: [
+      'plugin1',
+      '/path/to/plugin2'
+    ]
+  }
+}
+
+```
+
+#### Helper Functions
+- **data.emit('Event',[data])**
+Trigger a custom event on the formatter object.
+- **data.log(message)**
+Trigger a 'log' event on the formatter object, and also save the message in the result object log. 
+- **data.error(error)**
+Trigger an 'error' event on theformatter object.  Error must be an error object.
+
+### Defining Queues and Jobs
+```JS
+
+module.exports = app => {
+  // First, create a queue.  When you call the queue command,
+  // it will either create the queue if it doesn't exist - or
+  // load an existing queue object. We can link our methods 
+  // through chaining. The job function is passed a single 
+  // parameter, data.
+  app.queue('render')
+
+    .addJob('someJob', (data) => {
+      // actions on the data object. Normally you'll be working 
+      // on data.txt where the document contents are stored
+      // - but there are other things the data object can do.
+      data.log('Log message!');
+    });
+}
+```
+```JS
+// to run a single job from a queue:
+app.queue('name').job('jobName')(data)
 ```
 
 ## Creating plugins
 Creating a plugin for the system is pretty straight forward.  Make a module that exports a function.
 ```JavaScript
-// ./some/folder/plugin.js
+// /some/folder/plugin.js
 
 module.exports = (app) => {
-  app.queue('render')
-    .addJob('messages' (data) => {
-      // replace a tag in the file using  regular expression to match.
-      data.txt = data.txt.replace(/#(msg|wrn|err)\s+?(.*)\n/ig, (...args) => {
-        
-        let lvl = '';
-        switch(true){
-          // remember, arg[0] is the match itself!
-          case args[1].toLowerCase() === 'wrn':
-            lvl = '%cyWarning';
-          case args[1].toLowerCase() === 'err':
-            lvl = '%crError';
-          default:
-            lvl = '%chMessage';
-        }
-        // return our formatted string.
-        return `think %ch${lvl}:%cn ${args[2]}`;
-      });      
-    });
+  app.queue('pre-render')
+    .addJob('custom-job' (data) => {
+      // Do whatever processing you need to do on the current
+      // document (data.txt).        
+    })
 }
 
 // index.js
@@ -83,16 +125,19 @@ module.exports = (app) => {
 app.plugins(['./plugins/plugin.js'])
 
 // Or you can declare plugins at runtime.
-app.format('github:user/repo',{plugins:['./plugins/plugin.js']});
+app.format('github:user/repo',{
+  plugins:['./plugins/plugin.js']
+})
 
 // You can even just require the file:
-require('./plugins/plugin.js')(app);
+require('./plugins/plugin.js')(app)
 
 // Then in our raw document we use the tag:
 // #msg This is a message that will be rendered to the client.
 ```
 ## Formatting Rules
-The rules for formatting .mu documents is pretty simple! First, You can format your code however you'd like.  I suggest adopting an easy to read style using indentations and spacing to make your code digestable. MU-Format looks for a ```& or @``` in the first position of the line to designate the start of a new command. You can also add comments in your code in either '/* ... */' block style or '//' inline comments.
+The rules for formatting .mu documents is pretty simple! First, You can format your code however you'd like.  I suggest adopting an easy to read style using indentations and spacing to make your code digestable. MU-Format looks for ```[&+@-]``` in the first position of the current line to designate the start of a new command, attribute, or spacer. You can add comments in your code in either ```/* ... */``` block style or ```//``` inline style comments.
+A spacer, or dash ```-``` is a purely cosmetic mark for formatting the program output. During the compress phase they become newlines making the processed code a little more readable.
 
 ```
 /*
@@ -102,11 +147,11 @@ The rules for formatting .mu documents is pretty simple! First, You can format y
 Some cool custom commands I just wrote!
 */
 
-&cmd_mycommand me = $+Stuff *:
-  @pemit %#=You entered things and %0.;
+&cmd.mycommand me = $+Stuff *:
+  @pemit %#=You entered things and %0.
 
 // Another command that does things
-&cmd_mycommandtwo me = $+things *=*:
+&cmd.mycommandtwo me = $+things *=*:
   
   // Sets an attribute on myself!
   &_things me=%0-%1;
@@ -116,21 +161,32 @@ Some cool custom commands I just wrote!
 When we format this block of code, it turns into:
 
 ```
-&cmd_mycommand me = $+Stuff *: @pemit %#=You entered things and %0.;
+&cmd_mycommand me = $+Stuff *: @pemit %#=You entered things and %0.
 &cmd_mycommandtwo me = $+things *=*: &_things me=%0-%1; think Things %0 %1!
 ```
-Simple!
+**Simple!**
 
-The real power of Mu-Format comes in it's #tag system.  #tags are, when the code is interpreted, translated into MU friendly commands.  They're honestly a good way to save a few keystrokes, and even organize your code projects.  Lets take a look at the few that exist right now:
+The real power of Mu-Format comes in it's #meta tag system.  #metas are, when the code is processed, translated into MU friendly output.  They are honestly a good way to save a few keystrokes and even organize your code projects.  Lets take a look at the few that exist right now:
 
 ### #include /path/to/file.mu
-This is probably the most powerful #tag in the Mu-Format arsonal right now.  It allows you to import a file (or entire Github repository for instance) into the current file.  #include accepts three kinds of files right now:
-- **Local File** You can designate a local file to include, entering the ```./path/to/file.mu``` format.
-- **Local Directory** If you list a directory, Mu-Format will look for a file called ```installer.mu``` and kick off the #include from there.
-- **Github Archive** This is the same as installing from a local directory, instead you'll you'll enter ```github:user/repo```.
+this #meta allows you to import a file (or entire Github repository) into the current file.  #include accepts three kinds of files right now:
+- **Local File** 
+You can designate a local file to include, entering the ```./path/to/file.mu``` format.
+- **Local Directory** 
+If you list a directory, Mu-Format will look for a file called ```installer.mu``` and kick off the #include from there.
+- **Github Archive** 
+This is the same as installing from a local directory, instead you'll you'll enter ```github:user/repo```. If you start hitting errors while compiling from Github, try adding Github authorization when you create a new Formatter object. 
 
+```JS
+app = new Formatter({
+  gitUser: 'user',
+  gitPass: '123Secret!'
+})
 ```
-&cmd_command #123 = $foo *:
+
+**Example**
+```
+&cmd.command #123 = $foo *:
   think me Foo %0.
 
 // Include the rest of the library.
@@ -138,7 +194,7 @@ This is probably the most powerful #tag in the Mu-Format arsonal right now.  It 
 
 ```
 ### #file /path/to/file.txt
-Honestly #file works list like #include, except it escapes each line of the text file with ```@@``` null commands so they don't get quoted to the mux.  This is great for things like license files, and custom header and footer elements that are repeated across various Mu project files.
+Honestly #file works list like #include, except it escapes each line of the text file with ```@@``` null commands so they don't get quoted to the Game.  This is great for things like license files, and custom header and footer elements that are repeated across various Mu project files.
 
 ```
 @@ Legal Stuff
@@ -149,4 +205,3 @@ Honestly #file works list like #include, except it escapes each line of the text
 ### #Header <title>=<body>
 Information to be listed at the top of the resulting installer file. The library allows you to determine what special #tags are considered headers, like #author #url #codebase, etc.  I'm sure we'll have some defaults soon.  For now you can add a custom header to the beginning of the #header tag.
 
-## API Coming Soon!

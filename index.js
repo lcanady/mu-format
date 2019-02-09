@@ -5,8 +5,6 @@ const {promisify} = require('util');
 const {EventEmitter} = require('events');
 const _ = require('lodash');
 
-const readFilePromise = promisify(fs.readFile);
-
 /** Create a new formatter class */
 class Formatter extends EventEmitter {
   
@@ -21,63 +19,31 @@ class Formatter extends EventEmitter {
   constructor(options={}){
     super(options);
     this.queue = queue;
-    this.validHeaders = new Set();
-    this.log = [];
-    this.documents = [];
-    this.config = options.config ? options.config : {};
-    if (options.config)  this.configure(this.config);
+    this.options = options
+    this.gitUser = options.gitUser || ''
+    this.gitPass = options.gitPass || ''
+
     if (options.plugins) this.plugins(options.plugins);
-    if (options.headers) this.setHeaders(options.headers);
-  }
-
-  /**
-   * Add new valid headers to the format library.
-   * @param {string} headers A space seperated list of headers without the
-   * hash '#' that the system will see as valid. 
-   */
-  setHeaders(headers) {
-    headers = headers.split(' ')
-    const set = new Set(headers);
-    for (const hdr of set) {
-      this.validHeaders.add(hdr);
-    } 
-  }
-
-  async configure(config) {
-    try {
-      let file = await readFilePromise(config, 'utf8');
-      this.config = JSON.parse(file);
-    } catch (error) {
-      this.emit('error', error);
-    }
-  }
-
-  /**
-   * Create a log entry of an event.
-   * @param {string} message The log message to be recorded.
-   */
-  logger(message) {
-    const d = new Date().toLocaleTimeString();
-    this.log.push(`${d} - ${message}`);
-    this.emit('log', `${d} - ${message}`);
   }
 
   /**
    * Format a string down to something that can be quoted through a MU* Client.
-   * @param {string} input The address, directory, or string to be formatted. 
+   * @param {string} input The directory, file or string to be formatted. 
    */
   async format(input, options={}){
     // figure out the base directory if there is one.
     const inputType = await this._inputType(input)
-    let type;
-    let footer = true;
-    let header = true;
-    let baseDir = '';
-    let fileName = '';
-    this.documents = [];
+    let type
+    let baseDir = ''
+    let fileName = ''
+    const documents = []
+    const log = []
 
-    if (options.noHeader || this.config.noHeader) header = false;
-    if (options.noFooter || this.config.noFooter) footer = false;
+    const logger = message => {
+      const d = new Date().toLocaleTimeString()
+      log.push(`${d} - ${message}`)
+      this.emit('log', `${d} - ${message}`)
+    }
 
     switch(true) {
       case  inputType === 'file':
@@ -95,26 +61,22 @@ class Formatter extends EventEmitter {
         type = 'text';  
     }
 
-    // Create the data object. Later I might turn this into it's own class.
+    // Create the data object.
     const data = {
       path: input,
-      baseDir: baseDir,
-      headers: [],
+      baseDir,
       txt:'',
       raw:'',
-      fileName: '',
+      fileName,
       cache: new Map(),
-      config: this.config,
-      defs: new Map(),
-      header: '',
-      footer: '',
       type,
       version: require('./package.json').version,
-      validHeaders: Array.from(this.validHeaders),
+      vars: {},
+      options: this.options,
       inputType: input => this._inputType(input),
       emit: (name, data) => this.emit(name, data),
-      error: (error,message = null) => this.emit('error', error, message),
-      log: message => this.logger(message)
+      error: error => this.emit('error', error),
+      log: message => logger(message)
     }
 
     // Load plugins
@@ -126,72 +88,30 @@ class Formatter extends EventEmitter {
     if (options.plugins) {
       // Try loading from runtime options first.
       this.plugins(options.plugins);
-    } else if (this.config.plugins) {
-      this.plugins(this.config.plugins)
-    }
+    } 
 
-    
     // run the queues.
-    await this.queue('open').job('open')(data);
+    await this.queue('open').job('open')(data)
   
     // Remove the '#include references from data.txt
-    data.raw = data.txt.replace(/#include\s.*\n/igm,'');
-    await this.queue('pre-render').run(data);
-    await this.queue('render').run(data);
-    await this.queue('pre-compress').run(data);
-    await this.queue('compress').run(data);
-    
-    // add header and footer
-    if (header) await this._custHeaderFooter('header', data);
-    if (footer) await this._custHeaderFooter('footer', data);
-    const results = data.header + data.txt.trim() + '\n\n' + data.footer;
+    data.raw = data.txt.replace(/#include\s.*\n/igm,'')
+    await this.queue('pre-render').run(data)
+    await this.queue('render').run(data)
+    await this.queue('pre-compress').run(data)
+    await this.queue('compress').run(data)
+    logger('Finalizing')
+    await this.queue('header').run(data)
+    await this.queue('footer').run(data)
     
     // Push the finished document to the documents collection.
-    this.documents.push({
+    documents.push({
       fileName: fileName || 'index',
-      contents: results,
+      contents: data.txt,
       raw: data.raw
     })
 
-    this.emit('done', this.documents, this.log)
-  }
-
-  async  _custHeaderFooter(input, data) {
-
-    if (input.match(/header|footer/i)) {
-      // Process custom headers -> turn this into a private method.
-        if(this.config[input]) {
-          // figure out what kind of data we're working with.
-          const inputType = await this._inputType(this.config[input]);
-          switch(inputType) {
-            case 'file':
-              try {
-                data.type = 'file';
-                data.path = path.join(this.config[input])
-                this.logger(`Custom ${input.toLowerCase()}: ${path.resolve(data.path)}`)
-                const inputData = await queue('open').job('open-file')(data);
-                inputData.split(/\r|\r\n|\n/).forEach(line =>{
-                  data[input] += `@@ ${line}\n`                   
-                });
-                break;
-
-              } catch (error) {
-                this.emit('error', error);
-                break;
-              }
-            default:
-              this.logger(`Custom ${input.toLowerCase()}: Formatting `.padEnd(68,'-'))
-              this.config[input]
-                .split(/\r|\r\n|\n/)
-                .forEach(line => {
-                  data[input] += `@@ ${line}\n`;
-                });
-          }
-
-        }
-        await this.queue(input).run(data);
-      
-    }    
+    logger('Format Complete')
+    this.emit('done', documents, this.log)
   }
 
   /**
@@ -236,10 +156,10 @@ class Formatter extends EventEmitter {
     } catch (error) {
       // If stat fails to run, it's either github or text.      
       try {
-        const gitHub = input.match(/^github.*/i);
+        const gitHub = input.match(/^github:.*/i);
         if (gitHub) {
           switch(true) {
-            case input.match(/^github.*/i).length > 0:
+            case gitHub.length > 0:
               return 'github';
             default: 
               return 'text';
