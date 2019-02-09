@@ -7,7 +7,7 @@ npm i mu-format
 ```
 ## Usage
 There are just a few steps in setting up the formatter.
-```JavaScript
+```js
 // Create your app
 const Formatter = require('mu-formatter');
 
@@ -112,7 +112,7 @@ app.queue('name').job('jobName')(data)
 
 ## Creating plugins
 Creating a plugin for the system is pretty straight forward.  Make a module that exports a function.
-```JavaScript
+```js
 // /some/folder/plugin.js
 
 module.exports = app => {
@@ -142,12 +142,9 @@ A spacer, or dash ```-``` is a purely cosmetic mark for formatting the program o
 
 ```
 /*
------------------------------------------------------------------------------
---- My Commands -------------------------------------------------------------
-
-Some cool custom commands I just wrote!
+------------------------------------------
+--- Commands: +things & +stuff -----------
 */
-
 &cmd.mycommand me = $+Stuff *:
   @pemit %#=You entered things and %0.
 
@@ -224,7 +221,7 @@ Then later in your code:
   // Rest of your code ...
 ```
 
-You can also make a ```#def``` that uses a regular expression string (you don't need to provide the beginning and end of the search ```//```).  Any group matches can represented in your code in the variables ````$0 - $9```  Remember! ```$0``` is the entire match.
+You can also make a ```#def``` that uses a regular expression string (you don't need to provide the beginning and end of the search ```//```).  Any group matches can represented in your code in the variables ```$0 - $9```  Remember! ```$0``` is the entire match.
 
 ```
 #def #create\s+(.*)\s*=\s*(.*)
