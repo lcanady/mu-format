@@ -1,6 +1,6 @@
 {
   "name": "mu-format",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "description": "A tool for formatting MUSHCode into something you can quote into your client.",
   "main": "index.js",
   "scripts": {},
